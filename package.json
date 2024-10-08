@@ -1,0 +1,46 @@
+{
+  "name": "@openinterface/knowledge",
+  "version": "0.0.1",
+  "description": "ai agent knowledge base management tool",
+  "main": "src/index.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/raidendotai/knowledge.git"
+  },
+  "keywords": [
+    "knowledge",
+    "crawler",
+    "vectorize",
+    "index",
+    "LLM",
+    "embeddings"
+  ],
+  "author": "openinterface",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/raidendotai/knowledge/issues"
+  },
+  "homepage": "https://github.com/raidendotai/knowledge#readme",
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.11",
+    "@readme/openapi-parser": "^2.6.0",
+    "@sindresorhus/slugify": "^2.2.1",
+    "async-retry": "^1.3.3",
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
+    "cli-progress": "^3.12.0",
+    "dotenv": "^16.4.5",
+    "fs-extra": "^11.2.0",
+    "https-proxy-agent": "^7.0.5",
+    "node-html-markdown": "^1.3.0",
+    "openai": "*",
+    "p-queue": "^7.4.1",
+    "tiktoken": "^1.0.17",
+    "yaml": "^2.5.1"
+  }
+}
