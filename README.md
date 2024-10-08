@@ -30,7 +30,7 @@ make a .env file, ensure it has these values
 OPENAI_API_KEY = "REPLACE_KEY" # required
 
 SERPER_API_KEY = "REPLACE_KEY" # to enable knowledge.collect.learn feature
-SERPER_SEARCH_QUERIES = "2" # search queries per learn operation (if enabled)
+SERPER_SEARCH_QUERIES = 2 # search queries per learn operation (if enabled)
 
 GITHUB_API_KEY = "REPLACE_KEY" # to enable knowledge.collect.github feature
 

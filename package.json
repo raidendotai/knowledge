@@ -1,6 +1,6 @@
 {
   "name": "@openinterface/knowledge",
-  "version": "0.0.1",
+  "version": "0.0.11",
   "description": "ai agent knowledge base management tool",
   "main": "src/index.js",
   "type": "module",

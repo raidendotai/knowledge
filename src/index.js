@@ -49,10 +49,14 @@ try {
       if (entry.isDirectory()) {
         await loadJsonFiles(fullPath);
       } else if (entry.isFile() && entry.name.endsWith('.json')) {
-        const fileContent = await fs.readFile(fullPath, 'utf-8');
-        const jsonData = JSON.parse(fileContent);
-        const { meta, uid, content } = jsonData;
-        LOCAL_KNOWLEDGE_DB[uid] = { meta, content };
+        try {
+          const fileContent = await fs.readFile(fullPath, 'utf-8');
+          const jsonData = JSON.parse(fileContent);
+          const { meta, uid, content } = jsonData;
+          LOCAL_KNOWLEDGE_DB[uid] = { meta, content };
+        } catch (e) {
+          console.error(e)
+        }
       }
     }
   };
@@ -992,13 +996,19 @@ const lib = {
         }
         const entries = await fs.readdir(path.join(VECTORS_DIR, root));
         const jsonFiles = entries.filter((file) => file.endsWith(".json"));
-        const dataset = await Promise.all(
+        const dataset = (await Promise.all(
           jsonFiles.map(async (file) => {
-            const filePath = path.join(VECTORS_DIR, root, file);
-            const content = await fs.readFile(filePath, "utf-8");
-            return JSON.parse(content);
+            try {
+              
+              const filePath = path.join(VECTORS_DIR, root, file);
+              const content = await fs.readFile(filePath, "utf-8");
+              return JSON.parse(content);
+            } catch(e){
+              console.error(e)
+            }
+            return false
           }),
-        );
+        )).filter(e=>e);
         const chunks = _chunkify(dataset, 50);
         for (let chunk of chunks) {
           // Filter out entries that already exist in the database
