@@ -122,7 +122,7 @@ const getAxiosInstance = async () => {
   return axios.create(axiosConfig);
 };
 const axiosInstance = await getAxiosInstance();
-const crawlQueue = new PQueue({ concurrency: 5 });
+const crawlQueue = new PQueue({ concurrency: 10 });
 
 const _chunkify = (array, size) => {
   const chunks = [];
@@ -182,7 +182,11 @@ const lib = {
               stream.write(`\n`);
               return text.trim();
             } else {
+              stream.write(`\no1 model thinking (stream disabled) ...`);
+              const intervalId = setInterval(() => { stream.write(' ...') }, 1000);
               const response = await openai.chat.completions.create(opts);
+              clearInterval(intervalId);
+              stream.write(`\n`);
               return response.choices[0]?.message?.content.trim() || "";
             }
           },
@@ -241,8 +245,8 @@ const lib = {
       );
     },
     process: {
-      html: async ({ url, proxy = false, use_puppeteer = false }) => {},
-      typescript: async ({ name }) => {},
+      html: async ({ url, proxy = false, use_puppeteer = false }) => { },
+      typescript: async ({ name }) => { },
     },
   },
   collect: {
@@ -295,16 +299,22 @@ const lib = {
               return await axiosInstance.get(normalizedUrl);
             },
             {
-              retries: 2,
+              retries: 4,
               factor: 2,
-              minTimeout: 1000,
+              minTimeout: 2000,
               onRetry: (err, attempt) => {
                 console.warn(
-                  `Retry ${attempt} for ${normalizedUrl} due to ${err.message}`,
+                  `> retry ${attempt} for ${normalizedUrl} due to ${err.message}`,
                 );
               },
             },
           );
+
+          const contentType = response.headers['content-type'] || '';
+          if (!contentType.includes('text/html')) {
+            // console.warn(`Non-HTML content skipped: ${normalizedUrl}`);
+            return;
+          }
 
           const html = response.data;
           const $ = cheerio.load(html);
@@ -378,6 +388,9 @@ const lib = {
       await queue.onIdle();
       progressBar.stop();
 
+      // Clear the console after the progress bar finishes
+      console.clear();
+
       console.dir({ crawl: { url, done: true } });
 
       // Post-process if enabled
@@ -397,7 +410,6 @@ const lib = {
           )
         }
       }
-
 
       return;
     },
@@ -422,7 +434,7 @@ const lib = {
         .filter((line) => line.startsWith("-"))
         .map((line) => line.split("-").slice(1).join("-").trim())
         .filter((q) => q.length > 0)
-        .slice(0,parseInt(process.env.SERPER_SEARCH_QUERIES));
+        .slice(0, parseInt(process.env.SERPER_SEARCH_QUERIES));
       // console.dir({queries})
 
       // Perform searches
@@ -504,7 +516,7 @@ const lib = {
         if (index) {
           const index_methods = Object.keys(index).filter(key => index[key] !== false);
           await Promise.all(
-            index_methods.map( async(index_method)=>{
+            index_methods.map(async (index_method) => {
               await lib.index.create[index_method]({ root: `learn/${root_slug}` });
             })
           )
@@ -595,8 +607,7 @@ const lib = {
             const _apiFunctionVectorize =
               `api info:\n` +
               `- name : ${api.info.title}\n` +
-              `- description : ${
-                api.info.description ? api.info.description.trim() : ""
+              `- description : ${api.info.description ? api.info.description.trim() : ""
               }\n` +
               `---\n` +
               `function name:\n` +
@@ -889,7 +900,7 @@ const lib = {
       }
     },
   },
-  post_process: async ({}) => {
+  post_process: async ({ }) => {
     // Iterate over each entry and generate cleaner Markdown using LLM
     const entries = await fs.readdir(DB_DIR, { withFileTypes: true });
     for (const entry of entries) {
@@ -959,7 +970,7 @@ const lib = {
               "utf-8",
             );
             if (LOCAL_KNOWLEDGE_DB) {
-              LOCAL_KNOWLEDGE_DB[item.uid] = { meta: item.meta , content: item.content }
+              LOCAL_KNOWLEDGE_DB[item.uid] = { meta: item.meta, content: item.content }
             }
           }),
         );
@@ -999,16 +1010,16 @@ const lib = {
         const dataset = (await Promise.all(
           jsonFiles.map(async (file) => {
             try {
-              
+
               const filePath = path.join(VECTORS_DIR, root, file);
               const content = await fs.readFile(filePath, "utf-8");
               return JSON.parse(content);
-            } catch(e){
+            } catch (e) {
               console.error(e)
             }
             return false
           }),
-        )).filter(e=>e);
+        )).filter(e => e);
         const chunks = _chunkify(dataset, 50);
         for (let chunk of chunks) {
           // Filter out entries that already exist in the database
@@ -1041,11 +1052,11 @@ insert into embeddings (uid, embedding) values
           );
         }
       },
-      supabase: async ({}) => {},
-      weaviate: async ({}) => {},
+      supabase: async ({ }) => { },
+      weaviate: async ({ }) => { },
     },
     query: {
-      local: async ({ query , embedding = false, threshold = 0.0 , amount = 6  }) => {
+      local: async ({ query, embedding = false, threshold = 0.0, amount = 6 }) => {
         if (!LOCAL_PG_INSTANCE) {
           const metaDb = new PGlite(INDEX_DIR, {
             extensions: {
@@ -1055,7 +1066,7 @@ insert into embeddings (uid, embedding) values
           await metaDb.waitReady;
           LOCAL_PG_INSTANCE = metaDb;
         }
-        const query_vector = embedding ? embedding : ( await lib.utils.embed({texts:[query]}) ).vectors[0]
+        const query_vector = embedding ? embedding : (await lib.utils.embed({ texts: [query] })).vectors[0]
         const res = await LOCAL_PG_INSTANCE.query(
           `
           select * from embeddings
@@ -1065,29 +1076,29 @@ insert into embeddings (uid, embedding) values
           `,
           [JSON.stringify(query_vector), -Number(threshold), Number(amount)]
         )
-        return res.rows.map(item=>{
+        return res.rows.map(item => {
           return {
             uid: item.uid,
             data: LOCAL_KNOWLEDGE_DB[item.uid] ? LOCAL_KNOWLEDGE_DB[item.uid] : false,
           }
         })
       },
-      supabase: async ({}) => {},
-      weaviate: async ({}) => {},
+      supabase: async ({ }) => { },
+      weaviate: async ({ }) => { },
     },
     ask: {
-      local: async({query , model="gpt-4o"}) => {
+      local: async ({ query, model = "gpt-4o" }) => {
 
         const retrieved = await lib.index.query.local({
           query,
-          amount: 5
+          amount: 7
         })
         const messages = [
           {
-            role:'user',
+            role: 'user',
             content: `# FOUND REFERENCES :
 
-${retrieved.map(entry=>yaml.stringify(entry.data)).join('\n---\n')}
+${retrieved.map(entry => yaml.stringify(entry.data)).join('\n---\n')}
 ------
 
 # USER QUERY :
@@ -1096,7 +1107,7 @@ ${query}`
           }
         ]
 
-        return await lib.utils.llm({messages , model});
+        return await lib.utils.llm({ messages, model });
       }
     },
   },
